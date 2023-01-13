@@ -1,0 +1,813 @@
+/* Nano33 IoT + Blynk 2.0 LED On/Off 실습 */
+
+#define BLYNK_PRINT Serial
+/* Blynk.Cloud 사이트에서 Nano33 IoT + LED에 대한 템플릿을 만든 후 대시보드에서 아래 3줄의 내용을 복붙복 하세요 */
+#define BLYNK_TEMPLATE_ID "TMPLDqZESKeN"
+#define BLYNK_DEVICE_NAME "rabbit"
+#define BLYNK_AUTH_TOKEN "vuvfCI9YH4YtLMJ9pT2T33ckqOV2HbpJ"
+
+#include <ESP8266WiFi.h>
+#include <BlynkSimpleEsp8266.h>  // 라이브러리 매니저창에서 blynk로 검색 후 설치할 것
+#include <DHT.h>       // 라이브러리 매니저창에서 DHT로 검색 후 설치할 것(by Adafruit 버전)
+#include <SoftwareSerial.h> //시리얼통신 라이브러리 호출
+#include <Adafruit_NeoPixel.h>
+#define DHTPIN            0     //DATA Pin 
+#define DHTTYPE           DHT11 //DHT22 라고 TYPE을 정의함
+int pinVal = 1;
+char auth[] = BLYNK_AUTH_TOKEN;
+// 접속 가능한 WiFi ID와 패스워드를 입력하세요
+char ssid[] = "YOURWIFI";
+char pass[] = "YOURPASSWORD";
+BlynkTimer timer;
+DHT dht(DHTPIN, DHTTYPE);
+int r;
+int g;
+int b;
+int hh=255;
+int tt=0;
+String strrgb = "#000000";
+WidgetLED vRGB(V5);
+#define PIN 2
+
+#define NUM_LEDS 23
+
+int Tx = 4; //Tx (보내는핀 설정)at
+int Rx = 5; //Rx (받는핀 설정)
+SoftwareSerial BT_Serial(Tx, Rx);  //시리얼 통신을 위한 객체선언
+#define BT_RENAME_ENABLE 0
+
+String RGBString;
+int RGBmode;
+int redColor;
+int greenColor;
+int blueColor;
+String redhex;
+String greenhex;
+String bluehex;
+String lighthex1;
+String lighthex2;
+int state;
+
+int count = 2;
+
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, PIN, NEO_GRB + NEO_KHZ800);
+
+void setup()
+{
+  Serial.begin(9600);
+  BT_Serial.begin(9600);
+  pinMode(16, INPUT);
+#if(BT_RENAME_ENABLE)
+  Serial.println("renaming BT module...");
+  BT_Serial.println("AT+NAMExxxxxx"); delay(100);
+  BT_Serial.println("AT+RESET"); delay(100);
+#endif
+  Blynk.begin(auth, ssid, pass);
+  dht.begin();
+  timer.setInterval(1000L, sendSensor);
+  strip.begin();
+  strip.show();
+}
+void sendSensor()
+{
+  int temp = dht.readTemperature();
+  int humi = dht.readHumidity();
+
+  Serial.print("Temp : "); Serial.println(temp);
+  Serial.print("Humi : "); Serial.println(humi);
+  Blynk.virtualWrite(V0, temp);
+  Blynk.virtualWrite(V1, humi);
+
+}
+BLYNK_WRITE(V2) {
+  //assign incoming value from pin V0 to a variable
+  int pinValue = param.asInt(); //or param.asStr() or .asDouble()
+  r = pinValue;
+  Serial.println("V2 Slider value is: " + String(pinValue));
+  strip.setPixelColor(0, r, g, b);
+  strip.setPixelColor(2, r, g, b);
+  strip.setPixelColor(4, r, g, b);
+  strip.setPixelColor(6, r, g, b);
+  strip.show();
+  String strr = numbercheck(r);
+
+  if (strr.toInt() < 16) {
+    strr = String(strr.toInt(), HEX);
+    strr = String("0" + strr);
+  }
+  else {
+    strr = String(strr.toInt(), HEX);
+  }
+  String strg = numbercheck(g);
+  Serial.print("strg = "); Serial.println(strg);
+  if (strg.toInt() < 16) {
+    strg = String(strg.toInt(), HEX);
+    strg = String("0" + strg);
+  }
+  else {
+    strg = String(strg.toInt(), HEX);
+  }
+  String strb = numbercheck(b);
+  Serial.print("strb = "); Serial.println(strb);
+  if (strb.toInt() < 16) {
+    strb = String(strb.toInt(), HEX);
+    strb = String("0" + strb);
+  }
+  else {
+    strb = String(strb.toInt(), HEX);
+  }
+  strrgb = "#" + strr + strg + strb;
+
+  strrgb.toUpperCase();
+  Serial.println("rgb : " + strrgb);
+
+  Blynk.setProperty(V5, "color", strrgb);
+  Blynk.virtualWrite(V5, strrgb);
+
+}
+BLYNK_WRITE(V3) {
+  //assign incoming value from pin V0 to a variable
+  int pinValue = param.asInt(); //or param.asStr() or .asDouble()
+  g = pinValue;
+  Serial.println("V3 Slider value is: " + String(pinValue));
+  String strr = numbercheck(r);
+  strip.setPixelColor(0, r, g, b);
+  strip.setPixelColor(2, r, g, b);
+  strip.setPixelColor(4, r, g, b);
+  strip.setPixelColor(6, r, g, b);
+  strip.show();
+  if (strr.toInt() < 16) {
+    strr = String(strr.toInt(), HEX);
+    strr = String("0" + strr);
+  }
+  else {
+    strr = String(strr.toInt(), HEX);
+  }
+  String strg = numbercheck(g);
+  Serial.print("strg = "); Serial.println(strg);
+  if (strg.toInt() < 16) {
+    strg = String(strg.toInt(), HEX);
+    strg = String("0" + strg);
+  }
+  else {
+    strg = String(strg.toInt(), HEX);
+  }
+  String strb = numbercheck(b);
+  Serial.print("strb = "); Serial.println(strb);
+  if (strb.toInt() < 16) {
+    strb = String(strb.toInt(), HEX);
+    strb = String("0" + strb);
+  }
+  else {
+    strb = String(strb.toInt(), HEX);
+  }
+  strrgb = "#" + strr + strg + strb;
+
+  strrgb.toUpperCase();
+  Serial.println("rgb : " + strrgb);
+
+  Blynk.setProperty(V5, "color", strrgb);
+  Blynk.virtualWrite(V5, strrgb);
+}
+BLYNK_CONNECTED()
+{
+  Blynk.virtualWrite(V5, 255);
+  Blynk.setProperty(V5, "color", strrgb);
+}
+BLYNK_WRITE(V4) {
+  //assign incoming value from pin V0 to a variable
+  int pinValue = param.asInt(); //or param.asStr() or .asDouble()
+  b = pinValue;
+  Serial.println("V4 Slider value is: " + String(pinValue));
+  String strr = numbercheck(r);
+  Serial.print("strr = "); Serial.println(strr);
+  strip.setPixelColor(0, r, g, b);
+  strip.setPixelColor(2, r, g, b);
+  strip.setPixelColor(4, r, g, b);
+  strip.setPixelColor(6, r, g, b);
+
+
+  strip.show();
+  if (strr.toInt() < 16) {
+    strr = String(strr.toInt(), HEX);
+    strr = String("0" + strr);
+  }
+  else {
+    strr = String(strr.toInt(), HEX);
+  }
+  String strg = numbercheck(g);
+  Serial.print("strg = "); Serial.println(strg);
+  if (strg.toInt() < 16) {
+    strg = String(strg.toInt(), HEX);
+    strg = String("0" + strg);
+  }
+  else {
+    strg = String(strg.toInt(), HEX);
+  }
+  String strb = numbercheck(b);
+  Serial.print("strb = "); Serial.println(strb);
+  if (strb.toInt() < 16) {
+    strb = String(strb.toInt(), HEX);
+    strb = String("0" + strb);
+  }
+  else {
+    strb = String(strb.toInt(), HEX);
+  }
+  strrgb = "#" + strr + strg + strb;
+  strrgb.toUpperCase();
+  Serial.println("rgb : " + strrgb);
+
+  Blynk.setProperty(V5, "color", strrgb);
+  Blynk.virtualWrite(V5, strrgb);
+
+}
+BLYNK_WRITE(V5) {
+  //assign incoming value from pin V0 to a variable
+  // int pinValue = param.asInt(); //or param.asStr() or .asDouble()
+  if (strrgb != "0") {
+    Blynk.setProperty(V5, "color", "#23C48E");
+  }
+  else {
+    Blynk.setProperty(V5, "color", "#23C48E");
+  }
+
+}
+
+BLYNK_WRITE(V6) {
+
+  int pinValue = param.asInt();
+  // greenColor = pinValue;
+  if (pinValue == 1)
+  {
+    for (int i = 0; i < 8; i++)
+    {
+      strip.setPixelColor(i, 255, 255, 255);
+    }
+    strip.show();
+    Serial.println("LED ON");
+
+  }
+  else {
+    for (int i = 0; i < 8; i++)
+    {
+      strip.setPixelColor(i, 0, 0, 0);
+    }
+    strip.show();
+    Serial.println("LED ON");
+
+
+  }
+  Blynk.setProperty(V5, "color", "#FFFFFF");
+  Blynk.virtualWrite(V5, "#FFFFFF");
+}
+BLYNK_WRITE(V7) {
+  
+  int pinValue = param.asInt();
+  // greenColor = pinValue;
+  if (pinValue == 1)
+  {
+    while (pinVal == 1) {
+      int pinVal = param.asInt();
+      for (int i = 0; i < 8; i++)
+      {
+        strip.setPixelColor(i, 255, 255, 255);
+      }
+      strip.show();
+      for (int i = 0; i < 8; i++)
+      {
+        strip.setPixelColor(i, 0, 0, 0);
+      }
+      strip.show();
+      Serial.println(pinVal);
+    }
+  }
+  else {
+    for (int i = 0; i < 8; i++)
+    {
+      strip.setPixelColor(i, 0, 0, 0);
+    }
+    strip.show();
+    Serial.println(pinValue);
+
+  }
+  Blynk.setProperty(V5, "color", "#FFFFFF");
+  Blynk.virtualWrite(V5, "#FFFFFF");
+}
+
+BLYNK_WRITE(V8) {
+ 
+  int tt = param.asInt();
+  int light1;
+  int light2;
+  if (tt < 0) {
+    light1 = map(hh, 0, 100, 0, 255);
+    strip.setPixelColor(0, light1, 0, 0);
+    strip.show();
+    if (light1 < 16) {
+      lighthex1 = String(light1, HEX);
+      lighthex1 = String("0" + lighthex1);
+    }
+    else {
+      lighthex1 = String(light1, HEX);
+    }
+    strrgb = "#" + lighthex1 + "0000";
+    Blynk.setProperty(V5, "color", strrgb);
+    Blynk.virtualWrite(V5, strrgb);
+  }
+  else if (tt < 18) {
+    light1 = map(hh, 0, 100, 0, 255);
+    light2 = map(hh, 0, 100, 0, 50);
+    strip.setPixelColor(0, light1, light2, 0);
+    strip.show();
+    if (light1 < 16) {
+      lighthex1 = String(light1, HEX);
+      lighthex1 = String("0" + lighthex1);
+    }
+    else {
+      lighthex1 = String(light1, HEX);
+    }
+    if (light2 < 16) {
+      lighthex2 = String(light2, HEX);
+      lighthex2 = String("0" + lighthex2);
+    }
+    else {
+      lighthex2 = String(light2, HEX);
+    }
+    strrgb = "#" + lighthex1 + lighthex2 + "00";
+    Blynk.setProperty(V5, "color", strrgb);
+    Blynk.virtualWrite(V5, strrgb);
+
+  }
+  else if (tt < 26) {
+    light1 = map(hh, 0, 100, 0, 255);
+    light2 = map(hh, 0, 100, 0, 255);
+    strip.setPixelColor(0, light1, light2, 0);
+    strip.show();
+        if (light1 < 16) {
+      lighthex1 = String(light1, HEX);
+      lighthex1 = String("0" + lighthex1);
+    }
+    else {
+      lighthex1 = String(light1, HEX);
+    }
+    if (light2 < 16) {
+      lighthex2 = String(light2, HEX);
+      lighthex2 = String("0" + lighthex2);
+    }
+    else {
+      lighthex2 = String(light2, HEX);
+    }
+    strrgb = "#" + lighthex1 + lighthex2 + "00";
+    Blynk.setProperty(V5, "color", strrgb);
+    Blynk.virtualWrite(V5, strrgb);
+  }
+  else if (tt < 32) {
+    light1 = map(hh, 0, 100, 0, 255);
+    strip.setPixelColor(0, 0, light1, 0);
+    strip.show();
+    if (light1 < 16) {
+      lighthex1 = String(light1, HEX);
+      lighthex1 = String("0" + lighthex1);
+    }
+    else {
+      lighthex1 = String(light1, HEX);
+    }
+    strrgb = "#00"+ lighthex1 + "00";
+    Blynk.setProperty(V5, "color", strrgb);
+    Blynk.virtualWrite(V5, strrgb);
+    
+  }
+  else {
+    light1 = map(hh, 0, 100, 0, 255);
+    strip.setPixelColor(0, 0, 0, light2);
+    strip.show();
+    if (light2 < 16) {
+      lighthex2 = String(light2, HEX);
+      lighthex2 = String("0" + lighthex2);
+    }
+    else {
+      lighthex2 = String(light2, HEX);
+    }
+    strrgb = "#0000"+ lighthex2;
+    Blynk.setProperty(V5, "color", strrgb);
+    Blynk.virtualWrite(V5, strrgb);
+  }
+}
+BLYNK_WRITE(V9) {
+  int hh = param.asInt();
+
+  int light1;
+  int light2;
+  if (tt < 0) {
+    light1 = map(hh, 0, 100, 0, 255);
+    strip.setPixelColor(0, light1, 0, 0);
+    strip.show();
+    if (light1 < 16) {
+      lighthex1 = String(light1, HEX);
+      lighthex1 = String("0" + lighthex1);
+    }
+    else {
+      lighthex1 = String(light1, HEX);
+    }
+    strrgb = "#" + lighthex1 + "0000";
+    Blynk.setProperty(V5, "color", strrgb);
+    Blynk.virtualWrite(V5, strrgb);
+  }
+  else if (tt < 18) {
+    light1 = map(hh, 0, 100, 0, 255);
+    light2 = map(hh, 0, 100, 0, 50);
+    strip.setPixelColor(0, light1, light2, 0);
+    strip.show();
+    if (light1 < 16) {
+      lighthex1 = String(light1, HEX);
+      lighthex1 = String("0" + lighthex1);
+    }
+    else {
+      lighthex1 = String(light1, HEX);
+    }
+    if (light2 < 16) {
+      lighthex2 = String(light2, HEX);
+      lighthex2 = String("0" + lighthex2);
+    }
+    else {
+      lighthex2 = String(light2, HEX);
+    }
+    strrgb = "#" + lighthex1 + lighthex2 + "00";
+    Blynk.setProperty(V5, "color", strrgb);
+    Blynk.virtualWrite(V5, strrgb);
+
+  }
+  else if (tt < 26) {
+    light1 = map(hh, 0, 100, 0, 255);
+    light2 = map(hh, 0, 100, 0, 255);
+    strip.setPixelColor(0, light1, light2, 0);
+    strip.show();
+        if (light1 < 16) {
+      lighthex1 = String(light1, HEX);
+      lighthex1 = String("0" + lighthex1);
+    }
+    else {
+      lighthex1 = String(light1, HEX);
+    }
+    if (light2 < 16) {
+      lighthex2 = String(light2, HEX);
+      lighthex2 = String("0" + lighthex2);
+    }
+    else {
+      lighthex2 = String(light2, HEX);
+    }
+    strrgb = "#" + lighthex1 + lighthex2 + "00";
+    Blynk.setProperty(V5, "color", strrgb);
+    Blynk.virtualWrite(V5, strrgb);
+  }
+  else if (tt < 32) {
+    light1 = map(hh, 0, 100, 0, 255);
+    strip.setPixelColor(0, 0, light1, 0);
+    strip.show();
+    if (light1 < 16) {
+      lighthex1 = String(light1, HEX);
+      lighthex1 = String("0" + lighthex1);
+    }
+    else {
+      lighthex1 = String(light1, HEX);
+    }
+    strrgb = "#00"+ lighthex1 + "00";
+    Blynk.setProperty(V5, "color", strrgb);
+    Blynk.virtualWrite(V5, strrgb);
+    
+  }
+  else {
+    light1 = map(hh, 0, 100, 0, 255);
+    strip.setPixelColor(0, 0, 0, light2);
+    strip.show();
+    if (light2 < 16) {
+      lighthex2 = String(light2, HEX);
+      lighthex2 = String("0" + lighthex2);
+    }
+    else {
+      lighthex2 = String(light2, HEX);
+    }
+    strrgb = "#0000"+ lighthex2;
+    Blynk.setProperty(V5, "color", strrgb);
+    Blynk.virtualWrite(V5, strrgb);
+  }
+}
+void loop()
+{
+  Blynk.run();
+  timer.run();
+  float h = dht.readHumidity();// 습도를 측정합니다.
+  float t = dht.readTemperature();// 온도를 측정합니다.
+  //  readDHT(h,t);
+  int state = digitalRead(16);
+  if (count == 2 and state == 0) {
+    initialize();
+    count = 0;
+  }
+  if (count == 0 and state) {
+    startbt();
+  }
+  delay(100);
+
+  if (BT_Serial.available()) {
+    count = 2;
+    RGBString = BT_Serial.readStringUntil('\n');
+    Serial.println(RGBString);
+
+    RGBmode = RGBString.substring(0, 2).toInt();
+
+    initialize();
+
+
+    if (RGBmode == 0) {
+      rainBow();
+    }
+    else if (RGBmode == 1) {
+      changColorByTH(h, t);
+    }
+    else if (RGBmode == 2) {
+      myPacketParseHandler(RGBString);
+      strip.setPixelColor(0, redColor, greenColor, blueColor);
+      strip.show();
+      Blynk.virtualWrite(V2, redColor);
+      Blynk.virtualWrite(V3, greenColor);
+      Blynk.virtualWrite(V4, blueColor);
+      if (redColor < 16) {
+        redhex = String(redColor, HEX);
+        redhex = String("0" + redhex);
+      }
+      else {
+        redhex = String(redColor, HEX);
+      }
+
+      if (greenColor < 16) {
+        greenhex = String(greenColor, HEX);
+        greenhex = String("0" + greenhex);
+      }
+      else {
+        greenhex = String(greenColor, HEX);
+      }
+
+      if (blueColor < 16) {
+        bluehex = String(blueColor, HEX);
+        bluehex = String("0" + bluehex);
+      }
+      else {
+        bluehex = String(blueColor, HEX);
+      }
+      strrgb = "#" + redhex + greenhex + bluehex;
+      strrgb.toUpperCase();
+      Serial.println("rgb : " + strrgb);
+
+      Blynk.setProperty(V5, "color", strrgb);
+      Blynk.virtualWrite(V5, strrgb);
+
+    }
+    else if (RGBmode == 3) {
+      fadeout();
+    }
+  }
+}
+
+void readDHT(float h, float t) {
+  // 값 읽기에 오류가 있으면 오류를 출력합니다.
+  if (isnan(h) || isnan(t)) {
+    Serial.println("Failed to read from DHT sensor!");
+    return;
+  }
+
+  Serial.print("Humidity: "); Serial.print(h); Serial.println(" %");
+  Serial.print("Temperature: "); Serial.print(t); Serial.println(" *C ");
+}
+
+void changColorByTH(float h, float t) {
+  int light1;
+  int light2;
+  if (t < 0) {
+    light1 = map(h, 0, 100, 0, 255);
+    strip.setPixelColor(0, light1, 0, 0);
+    strip.show();
+    if (light1 < 16) {
+      lighthex1 = String(light1, HEX);
+      lighthex1 = String("0" + lighthex1);
+    }
+    else {
+      lighthex1 = String(light1, HEX);
+    }
+    strrgb = "#" + lighthex1 + "0000";
+    Blynk.setProperty(V5, "color", strrgb);
+    Blynk.virtualWrite(V5, strrgb);
+  }
+  else if (t < 18) {
+    light1 = map(h, 0, 100, 0, 255);
+    light2 = map(h, 0, 100, 0, 50);
+    strip.setPixelColor(0, light1, light2, 0);
+    strip.show();
+    if (light1 < 16) {
+      lighthex1 = String(light1, HEX);
+      lighthex1 = String("0" + lighthex1);
+    }
+    else {
+      lighthex1 = String(light1, HEX);
+    }
+    if (light2 < 16) {
+      lighthex2 = String(light2, HEX);
+      lighthex2 = String("0" + lighthex2);
+    }
+    else {
+      lighthex2 = String(light2, HEX);
+    }
+    strrgb = "#" + lighthex1 + lighthex2 + "00";
+    Blynk.setProperty(V5, "color", strrgb);
+    Blynk.virtualWrite(V5, strrgb);
+
+  }
+  else if (t < 26) {
+    light1 = map(h, 0, 100, 0, 255);
+    light2 = map(h, 0, 100, 0, 255);
+    strip.setPixelColor(0, light1, light2, 0);
+    strip.show();
+        if (light1 < 16) {
+      lighthex1 = String(light1, HEX);
+      lighthex1 = String("0" + lighthex1);
+    }
+    else {
+      lighthex1 = String(light1, HEX);
+    }
+    if (light2 < 16) {
+      lighthex2 = String(light2, HEX);
+      lighthex2 = String("0" + lighthex2);
+    }
+    else {
+      lighthex2 = String(light2, HEX);
+    }
+    strrgb = "#" + lighthex1 + lighthex2 + "00";
+    Blynk.setProperty(V5, "color", strrgb);
+    Blynk.virtualWrite(V5, strrgb);
+  }
+  else if (t < 32) {
+    light1 = map(h, 0, 100, 0, 255);
+    strip.setPixelColor(0, 0, light1, 0);
+    strip.show();
+    if (light1 < 16) {
+      lighthex1 = String(light1, HEX);
+      lighthex1 = String("0" + lighthex1);
+    }
+    else {
+      lighthex1 = String(light1, HEX);
+    }
+    strrgb = "#00"+ lighthex1 + "00";
+    Blynk.setProperty(V5, "color", strrgb);
+    Blynk.virtualWrite(V5, strrgb);
+    
+  }
+  else {
+    light1 = map(h, 0, 100, 0, 255);
+    strip.setPixelColor(0, 0, 0, light2);
+    strip.show();
+    if (light2 < 16) {
+      lighthex2 = String(light2, HEX);
+      lighthex2 = String("0" + lighthex2);
+    }
+    else {
+      lighthex2 = String(light2, HEX);
+    }
+    strrgb = "#0000"+ lighthex2;
+    Blynk.setProperty(V5, "color", strrgb);
+    Blynk.virtualWrite(V5, strrgb);
+  }
+}
+
+void myPacketParseHandler(String rawPacketData) {
+  redColor = rawPacketData.substring(2, 5).toInt();
+  greenColor = rawPacketData.substring(5, 8).toInt();
+  blueColor = rawPacketData.substring(8, 11).toInt();
+
+  Serial.print("Red Value: ");  Serial.println(redColor);
+  Serial.print("Green Value: "); Serial.println(greenColor);
+  Serial.print("Blue Value: "); Serial.println(blueColor);
+}
+
+void initialize() {
+  for (int i = 0; i <= 7; i++) {
+    strip.setPixelColor(i, 0, 0, 0);
+    strip.show();
+  }
+}
+
+void startbt() {
+  strip.setPixelColor(0, 0, 0, 255);
+  strip.show();
+}
+
+void rainBow() {
+  strip.setPixelColor(0, 255, 0, 0);
+  strip.show();
+  Blynk.setProperty(V5, "color", "#FF0000");
+  Blynk.virtualWrite(V5, "#FF0000");
+  delay(100);
+  strip.setPixelColor(1, 255, 50, 0);
+  strip.show();
+    Blynk.setProperty(V5, "color", "#FF3200");
+  Blynk.virtualWrite(V5, "#FF3200");
+  delay(100);
+  strip.setPixelColor(2, 255, 255, 0);
+  strip.show();
+    Blynk.setProperty(V5, "color", "#FFFF00");
+  Blynk.virtualWrite(V5, "#FFFF00");
+  delay(100);
+  strip.setPixelColor(3, 0, 255, 0);
+  strip.show();
+    Blynk.setProperty(V5, "color", "#00FF00");
+  Blynk.virtualWrite(V5, "#00FF00");
+  delay(100);
+  strip.setPixelColor(4, 0, 0, 255);
+  strip.show();
+    Blynk.setProperty(V5, "color", "#0000FF");
+  Blynk.virtualWrite(V5, "#0000FF");
+  delay(100);
+  strip.setPixelColor(5, 0, 5, 255);
+  strip.show();
+    Blynk.setProperty(V5, "color", "#0005FF");
+  Blynk.virtualWrite(V5, "#0005FF");
+  delay(100);
+  strip.setPixelColor(6, 100, 0, 255);
+  strip.show();
+    Blynk.setProperty(V5, "color", "#6400FF");
+  Blynk.virtualWrite(V5, "#6400FF");
+  delay(100);
+  strip.setPixelColor(7, 255, 255, 255);
+  strip.show();
+    Blynk.setProperty(V5, "color", "#FFFFFF");
+  Blynk.virtualWrite(V5, "#FFFFFF");
+  delay(100);
+}
+
+void fadeout() {
+  strip.setPixelColor(0, 0, 0, 0);
+  strip.show();
+  delay(100);
+  strip.setPixelColor(0, 0, 0, 0);
+  strip.show();
+  strip.setPixelColor(1, 0, 0, 31);
+  strip.show();
+  delay(100);
+  strip.setPixelColor(1, 0, 0, 0);
+  strip.show();
+  strip.setPixelColor(2, 0, 0, 62);
+  strip.show();
+  delay(100);
+  strip.setPixelColor(2, 0, 0, 0);
+  strip.show();
+  strip.setPixelColor(3, 0, 0, 93);
+  strip.show();
+  delay(100);
+  strip.setPixelColor(3, 0, 0, 0);
+  strip.show();
+  strip.setPixelColor(4, 0, 0, 124);
+  strip.show();
+  delay(100);
+  strip.setPixelColor(4, 0, 0, 0);
+  strip.show();
+  strip.setPixelColor(5, 0, 0, 175);
+  strip.show();
+  delay(100);
+  strip.setPixelColor(5, 0, 0, 0);
+  strip.show();
+  strip.setPixelColor(6, 0, 0, 210);
+  strip.show();
+  delay(100);
+  strip.setPixelColor(6, 0, 0, 0);
+  strip.show();
+  strip.setPixelColor(7, 0, 0, 255);
+  strip.show();
+  delay(100);
+  strip.setPixelColor(0, 0, 0, 0);
+  strip.show();
+  Blynk.setProperty(V5, "color", "#0000FF");
+  Blynk.virtualWrite(V5, "#0000FF");
+}
+
+String numbercheck(int color)
+{
+  String rgb;
+  int n = String(color).length();
+  if (n == 0)
+  {
+    rgb == "000";
+  }
+  else if (n == 1)
+  {
+    rgb = "00" + String(color);
+  }
+  else if (n == 2)
+  {
+    rgb = "0" + String(color);
+  }
+  else
+  {
+    rgb = String(color);
+  }
+
+  return rgb;
+}
